@@ -25,7 +25,7 @@ ENV N8N_BASIC_AUTH_PASSWORD=$PASSWORD
 
 ENV N8N_USER_ID=root
 
-RUN apk add --update graphicsmagick tzdata
+RUN apk add --update graphicsmagick tzdata poppler-utils
 
 USER root
 
@@ -38,7 +38,3 @@ WORKDIR /data
 EXPOSE $PORT
 
 CMD export N8N_PORT=$PORT && n8n start
-
-
-
-
