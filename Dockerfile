@@ -1,40 +1,23 @@
-FROM node:22-alpine
+# n8n — official Docker image (npm install deprecated in n8n 3.0)
+# Migration 2026-08-19: node:22-alpine + npm install -g n8n@latest  →  docker.io/n8nio/n8n
+# Version is pinned for controlled upgrades + real rollback path.
+FROM docker.io/n8nio/n8n:2.35.3
 
-ARG N8N_VERSION=latest
-ARG PGPASSWORD
-ARG PGHOST
-ARG PGPORT
-ARG PGDATABASE
-ARG PGUSER
+# Extra OS deps (unchanged from previous image):
+#   graphicsmagick — image node processing
+#   tzdata         — timezone data
+#   poppler-utils  — pdftoppm for QC drawing workflow
+USER root
+RUN apk add --no-cache graphicsmagick tzdata poppler-utils
 
-ARG USERNAME
-ARG PASSWORD
-ARG ENCRYPTIONKEY
-
-ENV N8N_ENCRYPTION_KEY=$ENCRYPTIONKEY
-ENV DB_TYPE=postgresdb
-ENV DB_POSTGRESDB_DATABASE=$PGDATABASE
-ENV DB_POSTGRESDB_HOST=$PGHOST
-ENV DB_POSTGRESDB_PORT=$PGPORT
-ENV DB_POSTGRESDB_USER=$PGUSER
-ENV DB_POSTGRESDB_PASSWORD=$PGPASSWORD
-
-ENV N8N_BASIC_AUTH_ACTIVE=true
-ENV N8N_BASIC_AUTH_USER=$USERNAME
-ENV N8N_BASIC_AUTH_PASSWORD=$PASSWORD
-
-ENV N8N_USER_ID=root
-
-RUN apk add --update graphicsmagick tzdata poppler-utils
-
+# n8n's image runs as user 'node' (uid 1000). Previous image ran as root and
+# all volume files under /files are root-owned, so keep running as root.
 USER root
 
-RUN apk --update add --virtual build-dependencies python3 build-base && \
-    npm_config_user=root npm install --location=global n8n@${N8N_VERSION} && \
-    apk del build-dependencies
+# N8N_USER_FOLDER=/files is set in the Railway service env (state: /files/.n8n).
+# DB + encryption key + webhook URL also come from service env — no build args.
 
-WORKDIR /data
+EXPOSE 5678
 
-EXPOSE $PORT
-
+# Railway sets $PORT; n8n reads N8N_PORT. Export at runtime, not build time.
 CMD export N8N_PORT=$PORT && n8n start
