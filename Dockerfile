@@ -9,9 +9,9 @@
 #   - poppler-utils (pdftoppm): only user was "QC Drawing Measurement Extractor"
 #     (inactive since 2026-05-27, zero executions recorded)
 #   - tzdata: node bundles full ICU; TZ not set on this service
-# NOTE: official image base (n8nio/base) ships NO package manager — deps cannot
-# be added at build time anyway. If a dep is ever needed, copy binaries from an
-# alpine stage (both musl) or use N8N_CUSTOM_EXTENSIONS/env-based alternatives.
+# NOTE: official image base (n8nio/base, Docker Hardened Images Alpine) ships NO
+# package manager and NO shell — deps or shell wrappers cannot be added at build
+# or run time. If ever needed, copy binaries from an alpine stage (both musl).
 FROM docker.io/n8nio/n8n:2.35.3
 
 # Previous image ran as root and all volume files under /files are root-owned;
@@ -24,5 +24,9 @@ USER root
 
 EXPOSE 5678
 
-# Railway sets $PORT at runtime; n8n reads N8N_PORT.
-CMD ["sh", "-c", "export N8N_PORT=$PORT && exec n8n start"]
+# IMPORTANT: base image has NO shell (hardened Alpine). CMD must be exec-form,
+# no "sh -c". Railway's $PORT is not available at build time; n8n's default
+# listen port is 5678. Railway's n8n template convention: set N8N_PORT in the
+# service env if it ever differs from 5678.
+ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
+CMD ["n8n", "start"]
