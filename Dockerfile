@@ -11,10 +11,20 @@
 #   - tzdata: node bundles full ICU; TZ not set on this service
 #
 # Base image notes (n8nio/base = Docker Hardened Images Alpine):
-#   - NO package manager, NO shell in the default exec path.
+#   - Documented as "no package manager, no shell in the default exec path", but
+#     measured 2026-11-14 over `railway ssh`: /bin/sh (busybox) and /sbin/apk both
+#     exist. What is absent is a PostgreSQL client (pg_dump/psql) — which is why
+#     backups run inside the Postgres service, not here.
 #   - Railway's runtime execs the start command without resolving /usr/local/bin,
 #     so ALL commands below use absolute paths.
-FROM docker.io/n8nio/n8n:2.35.3
+#
+# Bump 2026-11-14: 2.35.3 → 2.47.7 (2.35.3 was 2026-08-14; 12 minors and 109 stable
+# releases behind stable at the time). Rehearsed before touching production: the
+# production dump restored into Postgres 16 + pgvector, then started with this
+# image — 159 workflows and 43 credentials intact, 109 migrations applied
+# (243 → 352), healthz 200, UI 200. /sbin/tini and /usr/local/bin/n8n verified
+# present in the new image, and it boots with this file's exact launch contract.
+FROM docker.io/n8nio/n8n:2.47.7
 
 # Previous image ran as root and all volume files under /files are root-owned;
 # the official image defaults to user 'node'. Keep root to avoid EACCES on the
